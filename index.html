@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-HK" prefix="og: https://ogp.me/ns#">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover">
+    
+    <!-- 🔍 基礎 SEO 核心標籤 -->
+    <title>📊 Enterprise CSAT Data Consolidation | 企業客戶滿意度問卷整合系統</title>
+    <meta name="description" content="100% 離線運行的純前端 Excel 自動化報表工具，專為企業滿意度問卷 (CSAT) 設計。具備動態公式、自動排版與 Zero-PII 零資料外洩的最高資安標準。">
+    <meta name="keywords" content="CSAT, 客戶滿意度, Excel自動化, ExcelJS, 資料轉置, 純前端, 離線數據處理, Zero-PII, 企業資安, PDPO, GDPR">
+    <meta name="author" content="Enterprise Data Automation">
+    <meta name="robots" content="index, follow">
+    <meta name="google-site-verification" content="JZ5UohX-CcP_fQV0_DI9VadkKY4ZoTTkUifL88-fIcY" />
+    <link rel="canonical" href="https://jackylawck.github.io/EnterpriseDemo-CustomerSurveyDataConsolidation/">
+
+    <!-- 🌐 Open Graph / Facebook / LinkedIn 社交卡片 -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://jackylawck.github.io/EnterpriseDemo-CustomerSurveyDataConsolidation/">
+    <meta property="og:title" content="📊 企業客戶滿意度問卷整合系統 (Offline-first)">
+    <meta property="og:description" content="純前端自動化將 RAW 問卷轉化為專業排版、帶動態公式的高級 Excel 報表，確保敏感機密絕不上雲。">
+    <meta property="og:locale" content="zh_HK">
+    <meta property="og:site_name" content="Enterprise CSAT Data Consolidation">
+
+    <!-- 🐦 Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="📊 Enterprise CSAT Data Consolidation">
+    <meta name="twitter:description" content="純前端 Excel 自動化報表工具，零記憶體外洩，符合全球資安標準 (Zero-PII)。">
+
+    <!-- 📱 PWA 與行動裝置設定 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CSAT整合">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1F4E79">
+    <meta name="application-name" content="Enterprise CSAT Data Consolidation">
+
+    <!-- 🛡️ 企業級安全策略：Content Security Policy (CSP) 與權限隔離 -->
+    <!-- 嚴格限制僅能從 cloudflare 載入腳本，阻斷任何外部未授權連線或資料傳送 -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;
+        style-src 'self' 'unsafe-inline';
+        img-src 'self' data: blob:;
+        font-src 'self' data:;
+        connect-src 'self' https://cdnjs.cloudflare.com;
+        media-src 'self' data:;
+        object-src 'none';
+        base-uri 'self';
+        form-action 'none';
+    ">
+    <meta http-equiv="Permissions-Policy" content="accelerometer=(), gyroscope=(), microphone=(), camera=(), geolocation=(), payment=()">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+
+    <!-- 引入 ExcelJS 與 FileSaver (純前端處理 Excel，數據不上雲) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        body { font-family: 'Microsoft JhengHei', sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; max-width: 600px; width: 100%; }
+        h2 { color: #1F4E79; margin-bottom: 10px; }
+        p { color: #666; margin-bottom: 30px; font-size: 14px; }
+        .drop-zone { border: 2px dashed #1F4E79; border-radius: 10px; padding: 50px 20px; cursor: pointer; transition: background 0.3s; background-color: #f9fbfd; }
+        .drop-zone:hover, .drop-zone.dragover { background-color: #e9f0f7; }
+        .drop-zone p { margin: 0; font-size: 16px; color: #333; font-weight: bold; }
+        input[type="file"] { display: none; }
+        #status { margin-top: 20px; font-weight: bold; color: #28a745; display: none; }
+        #error { margin-top: 20px; font-weight: bold; color: #dc3545; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📊 企業客戶問卷自動整合系統<br>(純離線 Demo 版)</h2>
+    <p>資料完全在您的瀏覽器內運算，保障企業機密零外洩 (Zero-PII)。</p>
+    
+    <div class="drop-zone" id="drop-zone">
+        <p>點擊此處選擇，或將 RAW Excel 檔案拖曳至此</p>
+        <input type="file" id="file-input" accept=".xlsx" />
+    </div>
+
+    <div id="status">✅ 處理完成！報表已自動下載。</div>
+    <div id="error">❌ 發生錯誤，請檢查檔案格式。</div>
+</div>
+
+<script>
+    // ==========================================
+    // 1. 開源展示版設定 (Zero-PII 脫敏配置)
+    // ==========================================
+    const CONFIG = {
+        report_year: 2025,
+        last_year: 2024,
+        report_title: "2025 Customer Satisfaction Survey - Data Consolidation (Enterprise Demo)",
+        COMPANY_ORDER: ["客戶集團A", "客戶集團B", "客戶集團C", "客戶集團D", "客戶集團E", "客戶集團F"],
+        COMPANY_MAPPING: {
+            "Alpha Corp": "客戶集團A", "Alpha Ltd": "客戶集團A",
+            "Beta HK": "客戶集團B", "Beta Group": "客戶集團B",
+            "Gamma Co": "客戶集團C", "Delta Inc": "客戶集團D"
+        },
+        PERSON_NAME_MAPPING: {
+            // 開源示範為空，程式會自動保留原始輸入姓名
+        },
+        PERSON_ORDER: {
+            // 示範順序
+            "客戶集團A": ["代表甲", "代表乙"]
+        },
+        SCORE_QUESTIONS: [
+            { label: "1.施工前的準備", cat: "工程質量", kw: "施工前的準備" },
+            { label: "2.圖紙質量（質素及準時性）", cat: "", kw: "圖紙質量" },
+            { label: "3.產品質量及監管", cat: "", kw: "產品質量及監管" },
+            { label: "4.手工質量及監管", cat: "", kw: "手工質量及監管" },
+            { label: "5.地盤管理對工程之熟悉度", cat: "", kw: "地盤管理對工程之熟悉度" },
+            { label: "6.準時及準確地齊備相關文件\n（如證書、施工方案、報告等）", cat: "", kw: "準時及準確地齊備相關文件" },
+            { label: "7.工程能妥善及按時交付", cat: "", kw: "工程能妥善及按時交付" },
+            { label: "8.安環人員對安全及環保法例法規/地盤內部守則之熟悉度", cat: "安全及環保", kw: "安環人員對安全及環保法例法規" },
+            { label: "9.安環人員對安全及環保的培訓/推廣", cat: "", kw: "安環人員對安全及環保的培訓" },
+            { label: "10.安環人員對安全及環保監管", cat: "", kw: "安環人員對安全及環保監管" },
+            { label: "11.工人行為符合法例法規/地盤內部守則（安全及環保）", cat: "", kw: "工人行為符合安全及環保" },
+            { label: "12.工人對安全及環保之意識", cat: "", kw: "工人對安全及環保之意識" },
+            { label: "13.員工之工作態度", cat: "服務質素", kw: "員工之工作態度" },
+            { label: "14.創新技術及設備支援，如BIM", cat: "", kw: "創新技術及設備支援" },
+            { label: "15.工程協調性及配合度", cat: "", kw: "工程協調性及配合度" },
+            { label: "16.企業傳承", cat: "", kw: "企業傳承" },
+            { label: "17.能否就過往狀況、培訓，汲取經驗，達至持續改善", cat: "", kw: "達至持續改善" }
+        ],
+        TEXT_QUESTIONS: [
+            { label: "18.就工程質量方面，對本司於市場上的競爭力提出意見", kw: "工程質量方面,請對本公司" },
+            { label: "19.就安全及環保方面，對本司於市場上的競爭力提出意見", kw: "安全及環保方面,請對本公司" },
+            { label: "20.就服務質素方面，對本司於市場上的競爭力提出意見", kw: "服務質素方面,請對本公司" },
+            { label: "21.就我司對積極培養人才及參與各類社會公益事業/活動之意見", kw: "積極培養人才" },
+            { label: "22.就我司誠信表現的評價", kw: "誠信乃商業往來之基礎" },
+            { label: "23. 意見及建議", kw: "其他寶貴意見及建議" }
+        ]
+    };
+
+    // ==========================================
+    // 2. UI 互動與事件監聽
+    // ==========================================
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const statusDiv = document.getElementById('status');
+    const errorDiv = document.getElementById('error');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault(); dropZone.classList.remove('dragover');
+        if(e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', (e) => {
+        if(e.target.files.length) processFile(e.target.files[0]);
+    });
+
+    // ==========================================
+    // 3. 核心處理邏輯 (ExcelJS)
+    // ==========================================
+    async function processFile(file) {
+        statusDiv.style.display = 'none';
+        errorDiv.style.display = 'none';
+        
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(arrayBuffer);
+            const worksheet = workbook.worksheets[0];
+
+            let headers = [];
+            let data = [];
+            
+            worksheet.eachRow((row, rowNumber) => {
+                let rowData = [];
+                row.eachCell({ includeEmpty: true }, (cell, colNumber) => { rowData[colNumber - 1] = cell.value; });
+                if(rowNumber === 1 && (!rowData[0] || String(rowData[0]).trim() === "")) return; // 略過備註列
+                if(headers.length === 0) { headers = rowData; } else { data.push(rowData); }
+            });
+
+            const getColIdx = (kw) => headers.findIndex(h => String(h).includes(kw));
+            const nameIdx = getColIdx("姓名");
+            const compIdx = getColIdx("公司名稱");
+
+            if (nameIdx === -1 || compIdx === -1) throw new Error("缺少必要欄位，請確認為標準問卷格式。");
+
+            // 清洗與標準化數據 (徹底移除了尹錦棠等硬編碼邏輯，改為 100% 依賴 CONFIG 字典)
+            let cleanedData = data.filter(r => r[nameIdx] !== null && r[nameIdx] !== undefined).map(r => {
+                let pName = String(r[nameIdx]).trim();
+                let cName = String(r[compIdx]).trim();
+                let stdPerson = CONFIG.PERSON_NAME_MAPPING[pName] || pName;
+                let stdComp = CONFIG.COMPANY_MAPPING[cName] || cName;
+                
+                let compRank = CONFIG.COMPANY_ORDER.indexOf(stdComp);
+                compRank = compRank === -1 ? 999 : compRank;
+                
+                let pList = CONFIG.PERSON_ORDER[stdComp] || [];
+                let pRank = pList.indexOf(stdPerson);
+                pRank = pRank === -1 ? 999 : pRank;
+
+                return { raw: r, stdPerson, stdComp, compRank, pRank };
+            });
+
+            // 排序
+            cleanedData.sort((a, b) => a.compRank !== b.compRank ? a.compRank - b.compRank : a.pRank - b.pRank);
+
+            // 建立輸出 Workbook
+            const outWb = new ExcelJS.Workbook();
+            const outWs = outWb.addWorksheet("客戶滿意度問卷調查分數");
+            outWs.views = [{ showGridLines: true }];
+
+            // 定義樣式
+            const fontTitle = { name: 'Microsoft JhengHei', size: 14, bold: true, color: { argb: 'FF1F4E79' } };
+            const fontBold = { name: 'Microsoft JhengHei', size: 10, bold: true };
+            const fontReg = { name: 'Microsoft JhengHei', size: 10 };
+            const fontRed = { name: 'Microsoft JhengHei', size: 10, bold: true, color: { argb: 'FFFF0000' } };
+            
+            const alignCenter = { horizontal: 'center', vertical: 'middle', wrapText: true };
+            const alignLeft = { horizontal: 'left', vertical: 'middle', wrapText: true };
+            
+            const borderThin = {
+                top: {style:'thin', color:{argb:'FFBFBFBF'}}, left: {style:'thin', color:{argb:'FFBFBFBF'}},
+                bottom: {style:'thin', color:{argb:'FFBFBFBF'}}, right: {style:'thin', color:{argb:'FFBFBFBF'}}
+            };
+            
+            const fillGray = { type: 'pattern', pattern:'solid', fgColor:{argb:'FFF2F2F2'} };
+            const fillAvg = { type: 'pattern', pattern:'solid', fgColor:{argb:'FFFFF2CC'} };
+            const fillHead = { type: 'pattern', pattern:'solid', fgColor:{argb:'FFD9E1F2'} };
+
+            const applyStyle = (cell, font, align, fill) => {
+                cell.font = font || fontReg;
+                cell.alignment = align || alignCenter;
+                cell.border = borderThin;
+                if(fill) cell.fill = fill;
+            };
+
+            // 寫入固定標題
+            outWs.getCell(1, 1).value = CONFIG.report_title;
+            outWs.getCell(1, 1).font = fontTitle;
+
+            applyStyle(outWs.getCell(3, 1), fontBold, alignCenter, fillGray); outWs.getCell(3, 1).value = "客戶名稱";
+            applyStyle(outWs.getCell(5, 1), fontBold, alignCenter, fillGray); outWs.getCell(5, 1).value = "給分人士";
+
+            CONFIG.SCORE_QUESTIONS.forEach((q, i) => {
+                let r = 7 + i;
+                applyStyle(outWs.getCell(r, 1), fontReg, alignLeft); outWs.getCell(r, 1).value = q.label;
+                applyStyle(outWs.getCell(r, 2), fontBold, alignCenter, q.cat ? fillGray : null); outWs.getCell(r, 2).value = q.cat;
+            });
+
+            applyStyle(outWs.getCell(24, 1), fontBold, alignLeft, fillGray); outWs.getCell(24, 1).value = "總分 (170分)";
+            applyStyle(outWs.getCell(25, 1), fontBold, alignLeft, fillGray); outWs.getCell(25, 1).value = "各客戶代表-獨立平均分";
+            applyStyle(outWs.getCell(28, 1), fontBold, alignCenter, fillGray); outWs.getCell(28, 1).value = "其他意見";
+
+            CONFIG.TEXT_QUESTIONS.forEach((q, i) => {
+                applyStyle(outWs.getCell(30 + i, 1), fontReg, alignLeft); outWs.getCell(30 + i, 1).value = q.label;
+            });
+
+            // 處理動態欄位群組
+            let currentCol = 3;
+            let allCustomerCols = [];
+            
+            let grouped = {};
+            cleanedData.forEach(d => { if(!grouped[d.stdComp]) grouped[d.stdComp] = []; grouped[d.stdComp].push(d); });
+
+            const getLet = (c) => outWs.getColumn(c).letter;
+
+            for (const [compName, group] of Object.entries(grouped)) {
+                let personCols = [];
+                group.forEach((dataRow, pIdx) => {
+                    let personName = dataRow.stdPerson;
+                    personCols.push(currentCol);
+                    allCustomerCols.push(currentCol);
+
+                    applyStyle(outWs.getCell(3, currentCol), fontBold, alignCenter, fillGray);
+                    if (pIdx === 0) outWs.getCell(3, currentCol).value = compName;
+                    applyStyle(outWs.getCell(3, currentCol + 1), fontReg, alignCenter, fillGray);
+
+                    applyStyle(outWs.getCell(5, currentCol), fontBold, alignCenter, fillGray); outWs.getCell(5, currentCol).value = personName;
+                    applyStyle(outWs.getCell(5, currentCol + 1), fontReg, alignCenter, fillGray);
+
+                    applyStyle(outWs.getCell(6, currentCol), fontBold, alignCenter); outWs.getCell(6, currentCol).value = CONFIG.report_year;
+                    applyStyle(outWs.getCell(6, currentCol + 1), fontBold, alignCenter); outWs.getCell(6, currentCol + 1).value = CONFIG.last_year;
+
+                    let validCount = 0;
+                    CONFIG.SCORE_QUESTIONS.forEach((q, qIdx) => {
+                        let r = 7 + qIdx;
+                        let val = dataRow.raw[getColIdx(q.kw)];
+                        let num = parseFloat(val);
+                        let cellS = outWs.getCell(r, currentCol);
+                        if (!isNaN(num)) {
+                            cellS.value = num;
+                            applyStyle(cellS, num < 7 ? fontRed : fontReg, alignCenter);
+                            validCount++;
+                        } else {
+                            cellS.value = "--";
+                            applyStyle(cellS, fontReg, alignCenter);
+                        }
+                        applyStyle(outWs.getCell(r, currentCol + 1), fontReg, alignCenter); outWs.getCell(r, currentCol + 1).value = "--";
+                    });
+
+                    let letC = getLet(currentCol);
+                    applyStyle(outWs.getCell(24, currentCol), fontBold, alignCenter, fillGray);
+                    outWs.getCell(24, currentCol).value = { formula: `SUM(${letC}7:${letC}23)` };
+                    applyStyle(outWs.getCell(24, currentCol + 1), fontBold, alignCenter, fillGray); outWs.getCell(24, currentCol + 1).value = "--";
+
+                    let maxPts = validCount > 0 ? validCount * 10 : 170;
+                    let cellAvg = outWs.getCell(25, currentCol);
+                    applyStyle(cellAvg, fontBold, alignCenter, fillGray);
+                    cellAvg.value = { formula: `${letC}24/${maxPts}` };
+                    cellAvg.numFmt = '0.0%';
+                    applyStyle(outWs.getCell(25, currentCol + 1), fontBold, alignCenter, fillGray); outWs.getCell(25, currentCol + 1).value = "--";
+
+                    applyStyle(outWs.getCell(27, currentCol), fontBold, alignCenter, fillGray); if(pIdx===0) outWs.getCell(27, currentCol).value = compName;
+                    applyStyle(outWs.getCell(27, currentCol + 1), fontReg, alignCenter, fillGray);
+                    applyStyle(outWs.getCell(28, currentCol), fontBold, alignCenter, fillGray); outWs.getCell(28, currentCol).value = personName;
+                    applyStyle(outWs.getCell(28, currentCol + 1), fontReg, alignCenter, fillGray);
+                    applyStyle(outWs.getCell(29, currentCol), fontBold, alignCenter); outWs.getCell(29, currentCol).value = CONFIG.report_year;
+                    applyStyle(outWs.getCell(29, currentCol + 1), fontReg, alignCenter); outWs.getCell(29, currentCol + 1).value = "--";
+
+                    CONFIG.TEXT_QUESTIONS.forEach((q, tIdx) => {
+                        let tVal = dataRow.raw[getColIdx(q.kw)];
+                        let tStr = (tVal !== null && tVal !== undefined && String(tVal).trim() !== "") ? String(tVal).trim() : "--";
+                        applyStyle(outWs.getCell(30 + tIdx, currentCol), fontReg, alignLeft); outWs.getCell(30 + tIdx, currentCol).value = tStr;
+                        applyStyle(outWs.getCell(30 + tIdx, currentCol + 1), fontReg, alignCenter); outWs.getCell(30 + tIdx, currentCol + 1).value = "--";
+                    });
+
+                    currentCol += 2;
+                });
+
+                // 該客戶平均分欄
+                let avgCol = currentCol;
+                applyStyle(outWs.getCell(3, avgCol), fontBold, alignCenter, fillAvg); outWs.getCell(3, avgCol).value = `「${compName}」\n就每題目的平均分`;
+                applyStyle(outWs.getCell(3, avgCol + 1), fontReg, alignCenter, fillAvg);
+                applyStyle(outWs.getCell(5, avgCol), fontReg, alignCenter, fillAvg);
+                applyStyle(outWs.getCell(5, avgCol + 1), fontReg, alignCenter, fillAvg);
+                applyStyle(outWs.getCell(6, avgCol), fontBold, alignCenter, fillAvg); outWs.getCell(6, avgCol).value = CONFIG.report_year;
+                applyStyle(outWs.getCell(6, avgCol + 1), fontBold, alignCenter); outWs.getCell(6, avgCol + 1).value = CONFIG.last_year;
+
+                CONFIG.SCORE_QUESTIONS.forEach((q, qIdx) => {
+                    let r = 7 + qIdx;
+                    let targetCells = personCols.map(c => `${getLet(c)}${r}`).join(',');
+                    let formula = personCols.length > 1 ? `AVERAGE(${targetCells})` : `${targetCells}`;
+                    let cAvg = outWs.getCell(r, avgCol);
+                    applyStyle(cAvg, fontBold, alignCenter, fillAvg);
+                    cAvg.value = { formula: formula };
+                    cAvg.numFmt = '0.00';
+                    applyStyle(outWs.getCell(r, avgCol + 1), fontReg, alignCenter); outWs.getCell(r, avgCol + 1).value = "--";
+                });
+                
+                applyStyle(outWs.getCell(24, avgCol), fontBold, alignCenter, fillAvg); outWs.getCell(24, avgCol).value = "--";
+                applyStyle(outWs.getCell(24, avgCol + 1), fontBold, alignCenter); outWs.getCell(24, avgCol + 1).value = "--";
+                applyStyle(outWs.getCell(25, avgCol), fontBold, alignCenter, fillAvg); outWs.getCell(25, avgCol).value = "--";
+                applyStyle(outWs.getCell(25, avgCol + 1), fontBold, alignCenter); outWs.getCell(25, avgCol + 1).value = "--";
+
+                currentCol += 2;
+            }
+
+            // 總平均分欄位
+            let totCol = currentCol;
+            applyStyle(outWs.getCell(3, totCol), fontBold, alignCenter, fillHead); outWs.getCell(3, totCol).value = "每題總\n平均分";
+            applyStyle(outWs.getCell(6, totCol), fontBold, alignCenter, fillHead); outWs.getCell(6, totCol).value = CONFIG.report_year;
+
+            CONFIG.SCORE_QUESTIONS.forEach((q, qIdx) => {
+                let r = 7 + qIdx;
+                let targetCells = allCustomerCols.map(c => `${getLet(c)}${r}`).join(',');
+                let cTot = outWs.getCell(r, totCol);
+                applyStyle(cTot, fontBold, alignCenter, fillHead);
+                cTot.value = { formula: `AVERAGE(${targetCells})` };
+                cTot.numFmt = '0.00';
+            });
+            applyStyle(outWs.getCell(24, totCol), fontBold, alignCenter, fillHead); outWs.getCell(24, totCol).value = "--";
+            applyStyle(outWs.getCell(25, totCol), fontBold, alignCenter, fillHead); outWs.getCell(25, totCol).value = "--";
+
+            // 調整尺寸
+            outWs.getColumn(1).width = 46;
+            outWs.getColumn(2).width = 14;
+            for(let c = 3; c <= currentCol; c++) { outWs.getColumn(c).width = 13; }
+            outWs.getRow(3).height = 28;
+            outWs.getRow(5).height = 24;
+            for(let r=7; r<=25; r++) outWs.getRow(r).height = 20;
+            for(let r=30; r<=35; r++) outWs.getRow(r).height = 42;
+
+            // 匯出下載
+            const buffer = await outWb.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            saveAs(blob, "2025年客戶滿意度問卷調查資料整合_Demo已生成.xlsx");
+            
+            statusDiv.style.display = 'block';
+        } catch (error) {
+            console.error(error);
+            errorDiv.innerText = "❌ 發生錯誤：" + error.message;
+            errorDiv.style.display = 'block';
+        }
+    }
+</script>
+</body>
+</html>
