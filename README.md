@@ -5,7 +5,7 @@
 ![Security](https://img.shields.io/badge/security-Zero--PII%20%7C%20Offline-success)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-**(English below)**
+**(中文)**
 
 這是一款開源、具備**「雙軌模式 (Dual-mode)」**的自動化數據處理工具，專為將 Microsoft Forms 匯出的原始滿意度問卷資料（RAW Excel），自動轉換為標準化、排版精美，且帶有動態公式與條件格式的企業級管理層報表而設計。
 
