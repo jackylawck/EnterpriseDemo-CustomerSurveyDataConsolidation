@@ -23,6 +23,6 @@ flowchart LR
  * flows/：以機器可讀的 JSON 狀態機記錄 6 個處理階段與資安控制點，方便納入企業架構審查（Enterprise Architecture Review）。
  * SECURITY_AND_PRIVACY.md：聲明本工具豁免 EU AI Act，並符合香港 PDPO、GDPR 及 ISO/IEC 27001 / 27701 隱私設計原則。
 [English]
-This document outlines the dual-mode architecture, data contracts (schemas/), and deterministic processing pipeline (flows/) of Enterprise CSAT Data Consolidation for enterprise IT and security audit review.
- * Zero-Cloud Data Sovereignty: Whether executed via the browser (index.html with strict Content Security Policy) or desktop CLI (main.py), raw survey files never leave the local machine.
- * Auditability: Every transformation rule, formula denominator, and < 7 threshold alert is explicitly defined in flows/csat_deterministic_pipeline.json and schemas/.
+This document outlines the dual-mode architecture, data contracts (⁠schemas/⁠), and deterministic processing pipeline (⁠flows/⁠) of Enterprise CSAT Data Consolidation for enterprise IT and security audit review.
+ Zero-Cloud Data Sovereignty: Whether executed via the browser (⁠index.html⁠ with strict Content Security Policy) or desktop CLI (⁠main.py⁠), raw survey files never leave the local machine.
+ Auditability: Every transformation rule, formula denominator, and ⁠< 7⁠ threshold alert is explicitly defined in ⁠flows/csat_deterministic_pipeline.json⁠ and ⁠schemas/⁠.
