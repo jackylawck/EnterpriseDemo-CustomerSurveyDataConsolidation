@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://jackylawck.github.io/EnterpriseDemo-CustomerSurveyDataConsolidation/schemas/csat_raw_input_schema.json",
+  "title": "CSAT Raw Survey Input Schema",
+  "description": "Strict input validation contract for raw Microsoft Forms survey exports (Zero-PII compliant).",
+  "type": "object",
+  "required": [
+    "姓名",
+    "公司名稱",
+    "施工前的準備",
+    "圖紙質量",
+    "安環人員",
+    "員工之工作態度"
+  ],
+  "properties": {
+    "Id": {
+      "type": ["integer", "string", "null"],
+      "description": "Form submission sequence ID"
+    },
+    "姓名": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Respondent name or pseudonymized identifier"
+    },
+    "公司名稱": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Raw client organization name before dictionary normalization"
+    },
+    "定量評分題目 (Q1-Q17)": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 10,
+      "description": "Quantitative CSAT ratings across Engineering Quality (Q1-Q7), Safety & Environment (Q8-Q12), and Service Quality (Q13-Q17). Scores < 7 trigger red-flag highlighting."
+    },
+    "定性意見題目 (Q18-Q23)": {
+      "type": ["string", "null"],
+      "description": "Qualitative client feedback and market competitiveness comments"
+    }
+  },
+  "additionalProperties": true
+}
