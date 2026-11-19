@@ -1,0 +1,50 @@
+{
+  "pipeline_name": "Enterprise-CSAT-Deterministic-Consolidation",
+  "version": "1.0.0",
+  "architecture_type": "Dual-Mode Local Execution (Client-Side Browser / Offline Python CLI)",
+  "ai_governance_classification": {
+    "is_ai_system": false,
+    "eu_ai_act_status": "Exempt (Deterministic Rule-Based ETL)",
+    "data_residency": "100% Local Volatile Memory (Zero-Cloud / Zero-PII)"
+  },
+  "execution_stages": [
+    {
+      "stage": 1,
+      "id": "LOCAL_INGESTION",
+      "name": "Local File Ingestion",
+      "description": "Reads raw .xlsx file into local browser ArrayBuffer (ExcelJS) or local Python memory (BytesIO). Zero network transmission.",
+      "security_control": "CSP form-action 'none' & Air-gapped compatibility"
+    },
+    {
+      "stage": 2,
+      "id": "SCHEMA_VALIDATION",
+      "name": "Defensive Schema Validation",
+      "description": "Validates presence of mandatory column keywords against csat_raw_input_schema.json before processing.",
+      "on_failure": "Abort execution and raise SurveyDataValidationError"
+    },
+    {
+      "stage": 3,
+      "id": "PSEUDONYMIZATION_AND_SORTING",
+      "name": "Dictionary Normalization & Group Ordering",
+      "description": "Maps raw aliases to standardized corporate groups and orders respondents deterministically via local config dictionaries."
+    },
+    {
+      "stage": 4,
+      "id": "MATRIX_TRANSPOSITION",
+      "name": "Transposed Matrix & Formula Injection",
+      "description": "Builds horizontal client comparison blocks, injects dynamic SUM/AVERAGE formulas, and flags scores < 7 in bold red (#FF0000)."
+    },
+    {
+      "stage": 5,
+      "id": "LOCAL_EXPORT",
+      "name": "Client-Side File Export",
+      "description": "Generates formatted .xlsx workbook locally via FileSaver.js or local filesystem write."
+    },
+    {
+      "stage": 6,
+      "id": "MEMORY_SANITIZATION",
+      "name": "Volatile Memory Purge",
+      "description": "Explicitly deletes DataFrames and invokes gc.collect() to eliminate residual sensitive data in RAM."
+    }
+  ]
+}
