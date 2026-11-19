@@ -44,19 +44,8 @@
   <meta name="theme-color" content="#070f1e">
   <meta name="application-name" content="EnterpriseDemo-CustomerSurveyDataConsolidation">
 
-  <!-- 🛡️ 企業級資安防禦策略：Content Security Policy (CSP) 與權限控制 -->
-  <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self';
-    script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;
-    style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
-    img-src 'self' data: blob: https://img.shields.io https://images.unsplash.com;
-    font-src 'self' data:;
-    connect-src 'self' https://cdnjs.cloudflare.com;
-    media-src 'none';
-    object-src 'none';
-    base-uri 'self';
-    form-action 'none';
-  ">
+  <!-- 🛡️ 企業級資安防禦策略：Content Security Policy (CSP 單行最小權限配置) 與權限隔離 -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://img.shields.io https://images.unsplash.com; font-src 'self' data:; connect-src 'self' blob: https://cdnjs.cloudflare.com; media-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none';">
   <meta http-equiv="Permissions-Policy" content="accelerometer=(), gyroscope=(), microphone=(), camera=(), geolocation=(), payment=()">
   <meta name="referrer" content="strict-origin-when-cross-origin">
 
@@ -100,10 +89,9 @@
   }
   </script>
 
-  <!-- 引入標準樣式與純前端 Excel 處理依賴 (數據不上雲) -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <!-- 引入標準樣式與純前端 Excel 處理依賴 (原生 Blob 下載，無額外第三方腳本) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" crossorigin="anonymous">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js" crossorigin="anonymous"></script>
 
   <style>
     :root {
@@ -339,22 +327,30 @@
         </p>
       </div>
 
-      <!-- 錯誤提示 -->
+      <!-- 訊息提示框 (錯誤 / 治理清除通知) -->
       <div id="error-box" class="hidden bg-red-50 border border-red-200 text-red-700 text-xs font-semibold px-4 py-3 rounded-lg"></div>
+      <div id="info-box" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold px-4 py-3 rounded-lg"></div>
 
       <!-- 解析結果與即時互動預覽面板 -->
       <div id="status-panel" class="hidden space-y-5">
-        <!-- 狀態列與下載按鈕 -->
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
+        <!-- 狀態列與下載/清除按鈕 -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200">
           <div class="flex items-center gap-2.5">
             <span class="inline-block w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></span>
             <span id="status-text" class="text-sm font-semibold text-gray-800"></span>
           </div>
-          <button type="button" id="download-btn" onclick="exportGeneratedExcel()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
-            <span>📊</span>
-            <span class="tc">下載完整整合報表 (.xlsx)</span>
-            <span class="en">Download Consolidated Report (.xlsx)</span>
-          </button>
+          <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+            <button type="button" onclick="purgeSessionMemory()" class="bg-white hover:bg-red-50 text-gray-700 hover:text-red-700 border border-gray-300 hover:border-red-300 text-xs font-semibold px-3.5 py-2.5 rounded-lg transition flex items-center gap-1">
+              <span>🗑️</span>
+              <span class="tc">清除記憶體數據</span>
+              <span class="en">Purge RAM</span>
+            </button>
+            <button type="button" id="download-btn" onclick="exportGeneratedExcel()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
+              <span>📊</span>
+              <span class="tc">下載完整整合報表 (.xlsx)</span>
+              <span class="en">Download Consolidated Report (.xlsx)</span>
+            </button>
+          </div>
         </div>
 
         <!-- KPI 摘要卡片 -->
@@ -508,8 +504,8 @@
             <div class="bg-white p-3 rounded border border-blue-100">
               <div class="font-bold text-indigo-800">GDPR / ISO 27701</div>
               <div class="text-gray-600 mt-1">
-                <span class="tc">瀏覽器關閉即清空記憶體，零伺服器持久化留存。</span>
-                <span class="en">Zero server persistence; volatile browser memory clears upon tab closure.</span>
+                <span class="tc">瀏覽器關閉或點擊清除即清空記憶體，零伺服器持久化留存。</span>
+                <span class="en">Zero server persistence; volatile browser memory clears on purge or tab close.</span>
               </div>
             </div>
             <div class="bg-white p-3 rounded border border-blue-100">
@@ -630,7 +626,7 @@
   let previewState = null;
 
   // ==========================================
-  // 2. 語系切換與 UI 事件監聽
+  // 2. 語系切換、原生 Blob 下載與記憶體清理
   // ==========================================
   function toggleLanguage() {
     currentLang = (currentLang === "tc") ? "en" : "tc";
@@ -647,6 +643,7 @@
   const dropZone = document.getElementById("drop-zone");
   const fileInput = document.getElementById("file-input");
   const errorBox = document.getElementById("error-box");
+  const infoBox = document.getElementById("info-box");
   const statusPanel = document.getElementById("status-panel");
 
   dropZone.addEventListener("click", () => fileInput.click());
@@ -662,22 +659,68 @@
     fileInput.value = "";
   });
 
-  function showError(msg) {
-    errorBox.textContent = "❌ " + msg;
+  function msg(tcText, enText) {
+    return currentLang === "en" ? enText : tcText;
+  }
+
+  function showError(text) {
+    clearMessages();
+    errorBox.textContent = "❌ " + text;
     errorBox.classList.remove("hidden");
   }
 
-  function clearError() {
+  function showInfo(text) {
+    clearMessages();
+    infoBox.textContent = "✅ " + text;
+    infoBox.classList.remove("hidden");
+  }
+
+  function clearMessages() {
     errorBox.classList.add("hidden");
     errorBox.textContent = "";
+    infoBox.classList.add("hidden");
+    infoBox.textContent = "";
   }
 
   function ensureLibrariesReady() {
-    if (typeof ExcelJS === "undefined" || typeof saveAs === "undefined") {
-      showError("ExcelJS 或 FileSaver 套件尚未載入完成（請確認網路連線或未開啟離線檔案限制），請使用 HTTP 伺服器或 GitHub Pages 開啟。");
+    if (typeof ExcelJS === "undefined") {
+      showError(msg(
+        "ExcelJS 引擎尚未載入完成（請檢查網路連線或確認非以受限離線方式開啟），請重新整理頁面後再試。",
+        "ExcelJS engine failed to load. Please check your network connection and refresh the page."
+      ));
       return false;
     }
     return true;
+  }
+
+  function triggerBlobDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 1000);
+  }
+
+  function purgeSessionMemory() {
+    generatedBlob = null;
+    previewState = null;
+    statusPanel.classList.add("hidden");
+    document.getElementById("preview-head").innerHTML = "";
+    document.getElementById("preview-body").innerHTML = "";
+    document.getElementById("kpi-responses").textContent = "0";
+    document.getElementById("kpi-groups").textContent = "0";
+    document.getElementById("kpi-overall").textContent = "--";
+    document.getElementById("kpi-alerts").textContent = "0";
+    showInfo(msg(
+      "已徹底清除瀏覽器記憶體中的所有問卷與報表暫存數據（Zero-Data Retention）。",
+      "All volatile survey data and report buffers have been purged from browser RAM (Zero-Data Retention)."
+    ));
   }
 
   // ==========================================
@@ -729,25 +772,42 @@
   }
 
   async function runMockDemo() {
-    clearError();
+    clearMessages();
     if (!ensureLibrariesReady()) return;
-    const wb = buildMockWorkbook();
-    await processWorkbook(wb, "RAW_SAMPLE_Synthetic.xlsx");
-    statusPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    try {
+      const wb = buildMockWorkbook();
+      await processWorkbook(wb, "RAW_SAMPLE_Synthetic.xlsx");
+      statusPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      console.error(err);
+      showError(msg("載入虛擬數據失敗：", "Failed to run synthetic demo: ") + err.message);
+    }
   }
 
   async function downloadMockTemplate() {
-    clearError();
+    clearMessages();
     if (!ensureLibrariesReady()) return;
-    const wb = buildMockWorkbook();
-    const buffer = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    saveAs(blob, "RAW_SAMPLE_Demo.xlsx");
+    try {
+      const wb = buildMockWorkbook();
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      triggerBlobDownload(blob, "RAW_SAMPLE_Demo.xlsx");
+    } catch (err) {
+      console.error(err);
+      showError(msg("下載測試檔失敗：", "Failed to generate sample file: ") + err.message);
+    }
   }
 
   async function handleUploadedFile(file) {
-    clearError();
+    clearMessages();
     if (!ensureLibrariesReady()) return;
+    if (!file.name.toLowerCase().endsWith(".xlsx")) {
+      showError(msg(
+        "請上傳標準 .xlsx 格式檔案（不支援舊版 .xls 二進位格式）。",
+        "Please upload a standard .xlsx workbook (legacy .xls binary format is not supported)."
+      ));
+      return;
+    }
     try {
       const arrayBuffer = await file.arrayBuffer();
       const workbook = new ExcelJS.Workbook();
@@ -755,286 +815,292 @@
       await processWorkbook(workbook, file.name);
     } catch (err) {
       console.error(err);
-      showError(err.message || "無法解析檔案，請確認為有效 .xlsx 格式。");
+      showError(err.message || msg("無法解析檔案，請確認為有效 .xlsx 格式。", "Unable to parse file. Ensure it is a valid .xlsx workbook."));
     }
   }
 
   // ==========================================
   // 4. 核心處理邏輯 (ExcelJS 矩陣轉置 + 預覽狀態建立)
+  // Contract: Caller MUST wrap invocation in try/catch to surface validation/parsing errors to UI.
   // ==========================================
   async function processWorkbook(workbook, sourceName) {
-    try {
-      const worksheet = workbook.worksheets[0];
-      if (!worksheet) throw new Error("工作表為空。");
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) throw new Error(msg("工作表為空。", "Worksheet is empty."));
 
-      let headers = [];
-      let data = [];
+    let headers = [];
+    let data = [];
 
-      worksheet.eachRow((row, rowNumber) => {
-        let rowData = [];
-        row.eachCell({ includeEmpty: true }, (cell, colNumber) => { rowData[colNumber - 1] = cell.value; });
-        if (rowNumber === 1 && (!rowData[0] || String(rowData[0]).trim() === "")) return;
-        if (headers.length === 0) { headers = rowData; } else { data.push(rowData); }
-      });
+    worksheet.eachRow((row, rowNumber) => {
+      let rowData = [];
+      row.eachCell({ includeEmpty: true }, (cell, colNumber) => { rowData[colNumber - 1] = cell.value; });
+      if (rowNumber === 1 && (!rowData[0] || String(rowData[0]).trim() === "")) return;
+      if (headers.length === 0) { headers = rowData; } else { data.push(rowData); }
+    });
 
-      const getColIdx = (kw) => headers.findIndex(h => String(h || "").includes(kw));
-      const nameIdx = getColIdx("姓名");
-      const compIdx = getColIdx("公司名稱");
+    const getColIdx = (kw) => headers.findIndex(h => String(h || "").includes(kw));
+    const nameIdx = getColIdx("姓名");
+    const compIdx = getColIdx("公司名稱");
 
-      if (nameIdx === -1 || compIdx === -1) {
-        throw new Error("缺少必要欄位（姓名／公司名稱），請確認為標準 Microsoft Forms 問卷格式。");
-      }
+    if (nameIdx === -1 || compIdx === -1) {
+      throw new Error(msg(
+        "缺少必要欄位（姓名／公司名稱），請確認為標準 Microsoft Forms 問卷格式。",
+        "Missing mandatory columns (姓名 / 公司名稱). Please verify the Microsoft Forms export format."
+      ));
+    }
 
-      // 清洗與標準化數據 (Zero-PII)
-      let cleanedData = data.filter(r => r[nameIdx] !== null && r[nameIdx] !== undefined && String(r[nameIdx]).trim() !== "").map(r => {
-        let pName = String(r[nameIdx]).trim();
-        let cName = String(r[compIdx] || "未分類").trim();
-        let stdPerson = CONFIG.PERSON_NAME_MAPPING[pName] || pName;
-        let stdComp = CONFIG.COMPANY_MAPPING[cName] || cName;
+    // 清洗與標準化數據 (Zero-PII)
+    let cleanedData = data.filter(r => r[nameIdx] !== null && r[nameIdx] !== undefined && String(r[nameIdx]).trim() !== "").map(r => {
+      let pName = String(r[nameIdx]).trim();
+      let cName = String(r[compIdx] || "未分類").trim();
+      let stdPerson = CONFIG.PERSON_NAME_MAPPING[pName] || pName;
+      let stdComp = CONFIG.COMPANY_MAPPING[cName] || cName;
 
-        let compRank = CONFIG.COMPANY_ORDER.indexOf(stdComp);
-        compRank = compRank === -1 ? 999 : compRank;
+      let compRank = CONFIG.COMPANY_ORDER.indexOf(stdComp);
+      compRank = compRank === -1 ? 999 : compRank;
 
-        let pList = CONFIG.PERSON_ORDER[stdComp] || [];
-        let pRank = pList.indexOf(stdPerson);
-        pRank = pRank === -1 ? 999 : pRank;
+      let pList = CONFIG.PERSON_ORDER[stdComp] || [];
+      let pRank = pList.indexOf(stdPerson);
+      pRank = pRank === -1 ? 999 : pRank;
 
-        return { raw: r, stdPerson, stdComp, compRank, pRank };
-      });
+      return { raw: r, stdPerson, stdComp, compRank, pRank };
+    });
 
-      if (cleanedData.length === 0) throw new Error("未偵測到有效問卷回覆列。");
+    if (cleanedData.length === 0) {
+      throw new Error(msg("未偵測到有效問卷回覆列。", "No valid survey response rows detected."));
+    }
 
-      cleanedData.sort((a, b) => a.compRank !== b.compRank ? a.compRank - b.compRank : a.pRank - b.pRank);
+    cleanedData.sort((a, b) => a.compRank !== b.compRank ? a.compRank - b.compRank : a.pRank - b.pRank);
 
-      // 建立輸出 Workbook
-      const outWb = new ExcelJS.Workbook();
-      const outWs = outWb.addWorksheet("客戶滿意度問卷調查分數");
-      outWs.views = [{ showGridLines: true }];
+    // 建立輸出 Workbook
+    const outWb = new ExcelJS.Workbook();
+    const outWs = outWb.addWorksheet("客戶滿意度問卷調查分數");
+    outWs.views = [{ showGridLines: true }];
 
-      const fontTitle = { name: "Microsoft JhengHei", size: 14, bold: true, color: { argb: "FF1F4E79" } };
-      const fontBold = { name: "Microsoft JhengHei", size: 10, bold: true };
-      const fontReg = { name: "Microsoft JhengHei", size: 10 };
-      const fontRed = { name: "Microsoft JhengHei", size: 10, bold: true, color: { argb: "FFFF0000" } };
+    const fontTitle = { name: "Microsoft JhengHei", size: 14, bold: true, color: { argb: "FF1F4E79" } };
+    const fontBold = { name: "Microsoft JhengHei", size: 10, bold: true };
+    const fontReg = { name: "Microsoft JhengHei", size: 10 };
+    const fontRed = { name: "Microsoft JhengHei", size: 10, bold: true, color: { argb: "FFFF0000" } };
 
-      const alignCenter = { horizontal: "center", vertical: "middle", wrapText: true };
-      const alignLeft = { horizontal: "left", vertical: "middle", wrapText: true };
+    const alignCenter = { horizontal: "center", vertical: "middle", wrapText: true };
+    const alignLeft = { horizontal: "left", vertical: "middle", wrapText: true };
 
-      const borderThin = {
-        top: { style: "thin", color: { argb: "FFBFBFBF" } }, left: { style: "thin", color: { argb: "FFBFBFBF" } },
-        bottom: { style: "thin", color: { argb: "FFBFBFBF" } }, right: { style: "thin", color: { argb: "FFBFBFBF" } }
-      };
+    const borderThin = {
+      top: { style: "thin", color: { argb: "FFBFBFBF" } }, left: { style: "thin", color: { argb: "FFBFBFBF" } },
+      bottom: { style: "thin", color: { argb: "FFBFBFBF" } }, right: { style: "thin", color: { argb: "FFBFBFBF" } }
+    };
 
-      const fillGray = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2F2F2" } };
-      const fillAvg = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF2CC" } };
-      const fillHead = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9E1F2" } };
+    const fillGray = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2F2F2" } };
+    const fillAvg = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF2CC" } };
+    const fillHead = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9E1F2" } };
 
-      const applyStyle = (cell, font, align, fill) => {
-        cell.font = font || fontReg;
-        cell.alignment = align || alignCenter;
-        cell.border = borderThin;
-        if (fill) cell.fill = fill;
-      };
+    const applyStyle = (cell, font, align, fill) => {
+      cell.font = font || fontReg;
+      cell.alignment = align || alignCenter;
+      cell.border = borderThin;
+      if (fill) cell.fill = fill;
+    };
 
-      outWs.getCell(1, 1).value = CONFIG.report_title;
-      outWs.getCell(1, 1).font = fontTitle;
+    outWs.getCell(1, 1).value = CONFIG.report_title;
+    outWs.getCell(1, 1).font = fontTitle;
 
-      applyStyle(outWs.getCell(3, 1), fontBold, alignCenter, fillGray); outWs.getCell(3, 1).value = "客戶名稱";
-      applyStyle(outWs.getCell(5, 1), fontBold, alignCenter, fillGray); outWs.getCell(5, 1).value = "給分人士";
+    applyStyle(outWs.getCell(3, 1), fontBold, alignCenter, fillGray); outWs.getCell(3, 1).value = "客戶名稱";
+    applyStyle(outWs.getCell(5, 1), fontBold, alignCenter, fillGray); outWs.getCell(5, 1).value = "給分人士";
 
-      CONFIG.SCORE_QUESTIONS.forEach((q, i) => {
-        let r = 7 + i;
-        let displayCat = (q.catHeader !== undefined) ? q.catHeader : q.cat;
-        applyStyle(outWs.getCell(r, 1), fontReg, alignLeft); outWs.getCell(r, 1).value = q.label;
-        applyStyle(outWs.getCell(r, 2), fontBold, alignCenter, displayCat ? fillGray : null); outWs.getCell(r, 2).value = displayCat;
-      });
+    CONFIG.SCORE_QUESTIONS.forEach((q, i) => {
+      let r = 7 + i;
+      let displayCat = (q.catHeader !== undefined) ? q.catHeader : q.cat;
+      applyStyle(outWs.getCell(r, 1), fontReg, alignLeft); outWs.getCell(r, 1).value = q.label;
+      applyStyle(outWs.getCell(r, 2), fontBold, alignCenter, displayCat ? fillGray : null); outWs.getCell(r, 2).value = displayCat;
+    });
 
-      applyStyle(outWs.getCell(24, 1), fontBold, alignLeft, fillGray); outWs.getCell(24, 1).value = "總分 (170分)";
-      applyStyle(outWs.getCell(25, 1), fontBold, alignLeft, fillGray); outWs.getCell(25, 1).value = "各客戶代表-獨立平均分";
-      applyStyle(outWs.getCell(28, 1), fontBold, alignCenter, fillGray); outWs.getCell(28, 1).value = "其他意見";
+    applyStyle(outWs.getCell(24, 1), fontBold, alignLeft, fillGray); outWs.getCell(24, 1).value = "總分 (170分)";
+    applyStyle(outWs.getCell(25, 1), fontBold, alignLeft, fillGray); outWs.getCell(25, 1).value = "各客戶代表-獨立平均分";
+    applyStyle(outWs.getCell(28, 1), fontBold, alignCenter, fillGray); outWs.getCell(28, 1).value = "其他意見";
 
-      CONFIG.TEXT_QUESTIONS.forEach((q, i) => {
-        applyStyle(outWs.getCell(30 + i, 1), fontReg, alignLeft); outWs.getCell(30 + i, 1).value = q.label;
-      });
+    CONFIG.TEXT_QUESTIONS.forEach((q, i) => {
+      applyStyle(outWs.getCell(30 + i, 1), fontReg, alignLeft); outWs.getCell(30 + i, 1).value = q.label;
+    });
 
-      let currentCol = 3;
-      let allCustomerCols = [];
-      let grouped = {};
-      cleanedData.forEach(d => { if (!grouped[d.stdComp]) grouped[d.stdComp] = []; grouped[d.stdComp].push(d); });
+    let currentCol = 3;
+    let allCustomerCols = [];
+    let grouped = {};
+    cleanedData.forEach(d => { if (!grouped[d.stdComp]) grouped[d.stdComp] = []; grouped[d.stdComp].push(d); });
 
-      const getLet = (c) => outWs.getColumn(c).letter;
+    const getLet = (c) => outWs.getColumn(c).letter;
 
-      let totalLowAlerts = 0;
-      let grandScoreSum = 0;
-      let grandScoreCount = 0;
-      const groupNames = Object.keys(grouped);
-      const scoreSummaryRows = CONFIG.SCORE_QUESTIONS.map(q => ({
-        label: q.label.replace("\n", " "),
-        cat: q.cat,
-        groupAvgs: {},
-        groupHasLow: {},
-        allVals: [],
-        lowCount: 0
-      }));
-      const textFeedbackRows = [];
+    let totalLowAlerts = 0;
+    let grandScoreSum = 0;
+    let grandScoreCount = 0;
+    const groupNames = Object.keys(grouped);
+    const scoreSummaryRows = CONFIG.SCORE_QUESTIONS.map(q => ({
+      label: q.label.replace("\n", " "),
+      cat: q.cat,
+      groupAvgs: {},
+      groupHasLow: {},
+      allVals: [],
+      lowCount: 0
+    }));
+    const textFeedbackRows = [];
+    const maxCommentLenByRow = [0, 0, 0, 0, 0, 0];
 
-      for (const [compName, group] of Object.entries(grouped)) {
-        let personCols = [];
-        let groupScoresPerQ = CONFIG.SCORE_QUESTIONS.map(() => []);
+    for (const [compName, group] of Object.entries(grouped)) {
+      let personCols = [];
+      let groupScoresPerQ = CONFIG.SCORE_QUESTIONS.map(() => []);
 
-        group.forEach((dataRow, pIdx) => {
-          let personName = dataRow.stdPerson;
-          personCols.push(currentCol);
-          allCustomerCols.push(currentCol);
+      group.forEach((dataRow, pIdx) => {
+        let personName = dataRow.stdPerson;
+        personCols.push(currentCol);
+        allCustomerCols.push(currentCol);
 
-          applyStyle(outWs.getCell(3, currentCol), fontBold, alignCenter, fillGray);
-          if (pIdx === 0) outWs.getCell(3, currentCol).value = compName;
-          applyStyle(outWs.getCell(3, currentCol + 1), fontReg, alignCenter, fillGray);
+        applyStyle(outWs.getCell(3, currentCol), fontBold, alignCenter, fillGray);
+        if (pIdx === 0) outWs.getCell(3, currentCol).value = compName;
+        applyStyle(outWs.getCell(3, currentCol + 1), fontReg, alignCenter, fillGray);
 
-          applyStyle(outWs.getCell(5, currentCol), fontBold, alignCenter, fillGray); outWs.getCell(5, currentCol).value = personName;
-          applyStyle(outWs.getCell(5, currentCol + 1), fontReg, alignCenter, fillGray);
+        applyStyle(outWs.getCell(5, currentCol), fontBold, alignCenter, fillGray); outWs.getCell(5, currentCol).value = personName;
+        applyStyle(outWs.getCell(5, currentCol + 1), fontReg, alignCenter, fillGray);
 
-          applyStyle(outWs.getCell(6, currentCol), fontBold, alignCenter); outWs.getCell(6, currentCol).value = CONFIG.report_year;
-          applyStyle(outWs.getCell(6, currentCol + 1), fontBold, alignCenter); outWs.getCell(6, currentCol + 1).value = CONFIG.last_year;
+        applyStyle(outWs.getCell(6, currentCol), fontBold, alignCenter); outWs.getCell(6, currentCol).value = CONFIG.report_year;
+        applyStyle(outWs.getCell(6, currentCol + 1), fontBold, alignCenter); outWs.getCell(6, currentCol + 1).value = CONFIG.last_year;
 
-          let validCount = 0;
-          CONFIG.SCORE_QUESTIONS.forEach((q, qIdx) => {
-            let r = 7 + qIdx;
-            let cIdx = getColIdx(q.kw);
-            let val = cIdx !== -1 ? dataRow.raw[cIdx] : null;
-            let num = parseFloat(val);
-            let cellS = outWs.getCell(r, currentCol);
-            if (!isNaN(num)) {
-              cellS.value = num;
-              applyStyle(cellS, num < 7 ? fontRed : fontReg, alignCenter);
-              validCount++;
-              groupScoresPerQ[qIdx].push(num);
-              scoreSummaryRows[qIdx].allVals.push(num);
-              grandScoreSum += num;
-              grandScoreCount++;
-              if (num < 7) {
-                totalLowAlerts++;
-                scoreSummaryRows[qIdx].lowCount++;
-                scoreSummaryRows[qIdx].groupHasLow[compName] = true;
-              }
-            } else {
-              cellS.value = "--";
-              applyStyle(cellS, fontReg, alignCenter);
-            }
-            applyStyle(outWs.getCell(r, currentCol + 1), fontReg, alignCenter); outWs.getCell(r, currentCol + 1).value = "--";
-          });
-
-          let letC = getLet(currentCol);
-          applyStyle(outWs.getCell(24, currentCol), fontBold, alignCenter, fillGray);
-          outWs.getCell(24, currentCol).value = { formula: `SUM(${letC}7:${letC}23)` };
-          applyStyle(outWs.getCell(24, currentCol + 1), fontBold, alignCenter, fillGray); outWs.getCell(24, currentCol + 1).value = "--";
-
-          let maxPts = validCount > 0 ? validCount * 10 : 170;
-          let cellAvg = outWs.getCell(25, currentCol);
-          applyStyle(cellAvg, fontBold, alignCenter, fillGray);
-          cellAvg.value = { formula: `${letC}24/${maxPts}` };
-          cellAvg.numFmt = "0.0%";
-          applyStyle(outWs.getCell(25, currentCol + 1), fontBold, alignCenter, fillGray); outWs.getCell(25, currentCol + 1).value = "--";
-
-          applyStyle(outWs.getCell(27, currentCol), fontBold, alignCenter, fillGray); if (pIdx === 0) outWs.getCell(27, currentCol).value = compName;
-          applyStyle(outWs.getCell(27, currentCol + 1), fontReg, alignCenter, fillGray);
-          applyStyle(outWs.getCell(28, currentCol), fontBold, alignCenter, fillGray); outWs.getCell(28, currentCol).value = personName;
-          applyStyle(outWs.getCell(28, currentCol + 1), fontReg, alignCenter, fillGray);
-          applyStyle(outWs.getCell(29, currentCol), fontBold, alignCenter); outWs.getCell(29, currentCol).value = CONFIG.report_year;
-          applyStyle(outWs.getCell(29, currentCol + 1), fontReg, alignCenter); outWs.getCell(29, currentCol + 1).value = "--";
-
-          CONFIG.TEXT_QUESTIONS.forEach((q, tIdx) => {
-            let tIdxCol = getColIdx(q.kw);
-            let tVal = tIdxCol !== -1 ? dataRow.raw[tIdxCol] : null;
-            let tStr = (tVal !== null && tVal !== undefined && String(tVal).trim() !== "") ? String(tVal).trim() : "--";
-            applyStyle(outWs.getCell(30 + tIdx, currentCol), fontReg, alignLeft); outWs.getCell(30 + tIdx, currentCol).value = tStr;
-            applyStyle(outWs.getCell(30 + tIdx, currentCol + 1), fontReg, alignCenter); outWs.getCell(30 + tIdx, currentCol + 1).value = "--";
-            if (tStr !== "--") {
-              textFeedbackRows.push({ comp: compName, person: personName, qLabel: q.label, comment: tStr });
-            }
-          });
-
-          currentCol += 2;
-        });
-
-        CONFIG.SCORE_QUESTIONS.forEach((_, qIdx) => {
-          const arr = groupScoresPerQ[qIdx];
-          scoreSummaryRows[qIdx].groupAvgs[compName] = arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length) : null;
-        });
-
-        let avgCol = currentCol;
-        applyStyle(outWs.getCell(3, avgCol), fontBold, alignCenter, fillAvg); outWs.getCell(3, avgCol).value = `「${compName}」\n就每題目的平均分`;
-        applyStyle(outWs.getCell(3, avgCol + 1), fontReg, alignCenter, fillAvg);
-        applyStyle(outWs.getCell(5, avgCol), fontReg, alignCenter, fillAvg);
-        applyStyle(outWs.getCell(5, avgCol + 1), fontReg, alignCenter, fillAvg);
-        applyStyle(outWs.getCell(6, avgCol), fontBold, alignCenter, fillAvg); outWs.getCell(6, avgCol).value = CONFIG.report_year;
-        applyStyle(outWs.getCell(6, avgCol + 1), fontBold, alignCenter); outWs.getCell(6, avgCol + 1).value = CONFIG.last_year;
-
+        let validCount = 0;
         CONFIG.SCORE_QUESTIONS.forEach((q, qIdx) => {
           let r = 7 + qIdx;
-          let targetCells = personCols.map(c => `${getLet(c)}${r}`).join(",");
-          let formula = personCols.length > 1 ? `AVERAGE(${targetCells})` : `${targetCells}`;
-          let cAvg = outWs.getCell(r, avgCol);
-          applyStyle(cAvg, fontBold, alignCenter, fillAvg);
-          cAvg.value = { formula: formula };
-          cAvg.numFmt = "0.00";
-          applyStyle(outWs.getCell(r, avgCol + 1), fontReg, alignCenter); outWs.getCell(r, avgCol + 1).value = "--";
+          let cIdx = getColIdx(q.kw);
+          let val = cIdx !== -1 ? dataRow.raw[cIdx] : null;
+          let num = parseFloat(val);
+          let cellS = outWs.getCell(r, currentCol);
+          if (!isNaN(num)) {
+            cellS.value = num;
+            applyStyle(cellS, num < 7 ? fontRed : fontReg, alignCenter);
+            validCount++;
+            groupScoresPerQ[qIdx].push(num);
+            scoreSummaryRows[qIdx].allVals.push(num);
+            grandScoreSum += num;
+            grandScoreCount++;
+            if (num < 7) {
+              totalLowAlerts++;
+              scoreSummaryRows[qIdx].lowCount++;
+              scoreSummaryRows[qIdx].groupHasLow[compName] = true;
+            }
+          } else {
+            cellS.value = "--";
+            applyStyle(cellS, fontReg, alignCenter);
+          }
+          applyStyle(outWs.getCell(r, currentCol + 1), fontReg, alignCenter); outWs.getCell(r, currentCol + 1).value = "--";
         });
 
-        applyStyle(outWs.getCell(24, avgCol), fontBold, alignCenter, fillAvg); outWs.getCell(24, avgCol).value = "--";
-        applyStyle(outWs.getCell(24, avgCol + 1), fontBold, alignCenter); outWs.getCell(24, avgCol + 1).value = "--";
-        applyStyle(outWs.getCell(25, avgCol), fontBold, alignCenter, fillAvg); outWs.getCell(25, avgCol).value = "--";
-        applyStyle(outWs.getCell(25, avgCol + 1), fontBold, alignCenter); outWs.getCell(25, avgCol + 1).value = "--";
+        let letC = getLet(currentCol);
+        applyStyle(outWs.getCell(24, currentCol), fontBold, alignCenter, fillGray);
+        outWs.getCell(24, currentCol).value = { formula: `SUM(${letC}7:${letC}23)` };
+        applyStyle(outWs.getCell(24, currentCol + 1), fontBold, alignCenter, fillGray); outWs.getCell(24, currentCol + 1).value = "--";
+
+        let maxPts = validCount > 0 ? validCount * 10 : 170;
+        let cellAvg = outWs.getCell(25, currentCol);
+        applyStyle(cellAvg, fontBold, alignCenter, fillGray);
+        cellAvg.value = { formula: `${letC}24/${maxPts}` };
+        cellAvg.numFmt = "0.0%";
+        applyStyle(outWs.getCell(25, currentCol + 1), fontBold, alignCenter, fillGray); outWs.getCell(25, currentCol + 1).value = "--";
+
+        applyStyle(outWs.getCell(27, currentCol), fontBold, alignCenter, fillGray); if (pIdx === 0) outWs.getCell(27, currentCol).value = compName;
+        applyStyle(outWs.getCell(27, currentCol + 1), fontReg, alignCenter, fillGray);
+        applyStyle(outWs.getCell(28, currentCol), fontBold, alignCenter, fillGray); outWs.getCell(28, currentCol).value = personName;
+        applyStyle(outWs.getCell(28, currentCol + 1), fontReg, alignCenter, fillGray);
+        applyStyle(outWs.getCell(29, currentCol), fontBold, alignCenter); outWs.getCell(29, currentCol).value = CONFIG.report_year;
+        applyStyle(outWs.getCell(29, currentCol + 1), fontReg, alignCenter); outWs.getCell(29, currentCol + 1).value = "--";
+
+        CONFIG.TEXT_QUESTIONS.forEach((q, tIdx) => {
+          let tIdxCol = getColIdx(q.kw);
+          let tVal = tIdxCol !== -1 ? dataRow.raw[tIdxCol] : null;
+          let tStr = (tVal !== null && tVal !== undefined && String(tVal).trim() !== "") ? String(tVal).trim() : "--";
+          applyStyle(outWs.getCell(30 + tIdx, currentCol), fontReg, alignLeft); outWs.getCell(30 + tIdx, currentCol).value = tStr;
+          applyStyle(outWs.getCell(30 + tIdx, currentCol + 1), fontReg, alignCenter); outWs.getCell(30 + tIdx, currentCol + 1).value = "--";
+          if (tStr.length > maxCommentLenByRow[tIdx]) maxCommentLenByRow[tIdx] = tStr.length;
+          if (tStr !== "--") {
+            textFeedbackRows.push({ comp: compName, person: personName, qLabel: q.label, comment: tStr });
+          }
+        });
 
         currentCol += 2;
-      }
+      });
 
-      let totCol = currentCol;
-      applyStyle(outWs.getCell(3, totCol), fontBold, alignCenter, fillHead); outWs.getCell(3, totCol).value = "每題總\n平均分";
-      applyStyle(outWs.getCell(6, totCol), fontBold, alignCenter, fillHead); outWs.getCell(6, totCol).value = CONFIG.report_year;
+      CONFIG.SCORE_QUESTIONS.forEach((_, qIdx) => {
+        const arr = groupScoresPerQ[qIdx];
+        scoreSummaryRows[qIdx].groupAvgs[compName] = arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length) : null;
+      });
+
+      let avgCol = currentCol;
+      applyStyle(outWs.getCell(3, avgCol), fontBold, alignCenter, fillAvg); outWs.getCell(3, avgCol).value = `「${compName}」\n就每題目的平均分`;
+      applyStyle(outWs.getCell(3, avgCol + 1), fontReg, alignCenter, fillAvg);
+      applyStyle(outWs.getCell(5, avgCol), fontReg, alignCenter, fillAvg);
+      applyStyle(outWs.getCell(5, avgCol + 1), fontReg, alignCenter, fillAvg);
+      applyStyle(outWs.getCell(6, avgCol), fontBold, alignCenter, fillAvg); outWs.getCell(6, avgCol).value = CONFIG.report_year;
+      applyStyle(outWs.getCell(6, avgCol + 1), fontBold, alignCenter); outWs.getCell(6, avgCol + 1).value = CONFIG.last_year;
 
       CONFIG.SCORE_QUESTIONS.forEach((q, qIdx) => {
         let r = 7 + qIdx;
-        let targetCells = allCustomerCols.map(c => `${getLet(c)}${r}`).join(",");
-        let cTot = outWs.getCell(r, totCol);
-        applyStyle(cTot, fontBold, alignCenter, fillHead);
-        cTot.value = { formula: `AVERAGE(${targetCells})` };
-        cTot.numFmt = "0.00";
+        let targetCells = personCols.map(c => `${getLet(c)}${r}`).join(",");
+        let formula = personCols.length > 1 ? `AVERAGE(${targetCells})` : `${targetCells}`;
+        let cAvg = outWs.getCell(r, avgCol);
+        applyStyle(cAvg, fontBold, alignCenter, fillAvg);
+        cAvg.value = { formula: formula };
+        cAvg.numFmt = "0.00";
+        applyStyle(outWs.getCell(r, avgCol + 1), fontReg, alignCenter); outWs.getCell(r, avgCol + 1).value = "--";
       });
-      applyStyle(outWs.getCell(24, totCol), fontBold, alignCenter, fillHead); outWs.getCell(24, totCol).value = "--";
-      applyStyle(outWs.getCell(25, totCol), fontBold, alignCenter, fillHead); outWs.getCell(25, totCol).value = "--";
 
-      outWs.getColumn(1).width = 46;
-      outWs.getColumn(2).width = 14;
-      for (let c = 3; c <= currentCol; c++) { outWs.getColumn(c).width = 13; }
-      outWs.row(3).height = 28;
-      outWs.row(5).height = 24;
-      for (let r = 7; r <= 25; r++) outWs.row(r).height = 20;
-      for (let r = 30; r <= 35; r++) outWs.row(r).height = 42;
+      applyStyle(outWs.getCell(24, avgCol), fontBold, alignCenter, fillAvg); outWs.getCell(24, avgCol).value = "--";
+      applyStyle(outWs.getCell(24, avgCol + 1), fontBold, alignCenter); outWs.getCell(24, avgCol + 1).value = "--";
+      applyStyle(outWs.getCell(25, avgCol), fontBold, alignCenter, fillAvg); outWs.getCell(25, avgCol).value = "--";
+      applyStyle(outWs.getCell(25, avgCol + 1), fontBold, alignCenter); outWs.getCell(25, avgCol + 1).value = "--";
 
-      const buffer = await outWb.xlsx.writeBuffer();
-      generatedBlob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-      generatedFileName = "2025年客戶滿意度問卷調查資料整合_Demo已生成.xlsx";
-
-      previewState = {
-        sourceName,
-        totalResponses: cleanedData.length,
-        groupNames,
-        scoreSummaryRows,
-        textFeedbackRows
-      };
-
-      document.getElementById("kpi-responses").textContent = cleanedData.length;
-      document.getElementById("kpi-groups").textContent = groupNames.length;
-      document.getElementById("kpi-overall").textContent = grandScoreCount ? (grandScoreSum / grandScoreCount).toFixed(2) : "--";
-      document.getElementById("kpi-alerts").textContent = totalLowAlerts;
-
-      updateStatusBanner(sourceName, cleanedData.length, groupNames.length);
-      statusPanel.classList.remove("hidden");
-      applyFilter("ALL");
-    } catch (error) {
-      console.error(error);
-      showError(error.message || "處理失敗，請檢查檔案格式。");
+      currentCol += 2;
     }
+
+    let totCol = currentCol;
+    applyStyle(outWs.getCell(3, totCol), fontBold, alignCenter, fillHead); outWs.getCell(3, totCol).value = "每題總\n平均分";
+    applyStyle(outWs.getCell(6, totCol), fontBold, alignCenter, fillHead); outWs.getCell(6, totCol).value = CONFIG.report_year;
+
+    CONFIG.SCORE_QUESTIONS.forEach((q, qIdx) => {
+      let r = 7 + qIdx;
+      let targetCells = allCustomerCols.map(c => `${getLet(c)}${r}`).join(",");
+      let cTot = outWs.getCell(r, totCol);
+      applyStyle(cTot, fontBold, alignCenter, fillHead);
+      cTot.value = { formula: `AVERAGE(${targetCells})` };
+      cTot.numFmt = "0.00";
+    });
+    applyStyle(outWs.getCell(24, totCol), fontBold, alignCenter, fillHead); outWs.getCell(24, totCol).value = "--";
+    applyStyle(outWs.getCell(25, totCol), fontBold, alignCenter, fillHead); outWs.getCell(25, totCol).value = "--";
+
+    outWs.getColumn(1).width = 46;
+    outWs.getColumn(2).width = 14;
+    for (let c = 3; c <= currentCol; c++) { outWs.getColumn(c).width = 13; }
+    outWs.row(3).height = 28;
+    outWs.row(5).height = 24;
+    for (let r = 7; r <= 25; r++) outWs.row(r).height = 20;
+    for (let tIdx = 0; tIdx < 6; tIdx++) {
+      const estLines = Math.max(2, Math.ceil(maxCommentLenByRow[tIdx] / 6));
+      outWs.row(30 + tIdx).height = Math.min(180, Math.max(42, estLines * 14));
+    }
+
+    const buffer = await outWb.xlsx.writeBuffer();
+    generatedBlob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    generatedFileName = "2025年客戶滿意度問卷調查資料整合_Demo已生成.xlsx";
+
+    previewState = {
+      sourceName,
+      totalResponses: cleanedData.length,
+      groupNames,
+      scoreSummaryRows,
+      textFeedbackRows
+    };
+
+    document.getElementById("kpi-responses").textContent = cleanedData.length;
+    document.getElementById("kpi-groups").textContent = groupNames.length;
+    document.getElementById("kpi-overall").textContent = grandScoreCount ? (grandScoreSum / grandScoreCount).toFixed(2) : "--";
+    document.getElementById("kpi-alerts").textContent = totalLowAlerts;
+
+    updateStatusBanner(sourceName, cleanedData.length, groupNames.length);
+    statusPanel.classList.remove("hidden");
+    applyFilter("ALL");
   }
 
   function updateStatusBanner(sourceName, respCount, groupCount) {
@@ -1048,10 +1114,13 @@
 
   function exportGeneratedExcel() {
     if (!generatedBlob) {
-      showError("請先點擊「一鍵載入虛擬數據體驗」或上傳 RAW Excel 檔案，再下載整合報表。");
+      showError(msg(
+        "請先點擊「一鍵載入虛擬數據體驗」或上傳 RAW Excel 檔案，再下載整合報表。",
+        "Please click 'Load Synthetic Demo Data' or upload a RAW Excel file before downloading."
+      ));
       return;
     }
-    saveAs(generatedBlob, generatedFileName);
+    triggerBlobDownload(generatedBlob, generatedFileName);
   }
 
   // ==========================================
