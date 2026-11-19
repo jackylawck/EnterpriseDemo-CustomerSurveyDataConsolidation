@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://jackylawck.github.io/EnterpriseDemo-CustomerSurveyDataConsolidation/schemas/csat_output_report_schema.json",
+  "title": "CSAT Consolidated Management Report Schema",
+  "description": "Output matrix specification, dynamic Excel formulas, and conditional formatting rules.",
+  "type": "object",
+  "properties": {
+    "worksheet_name": {
+      "type": "string",
+      "const": "客戶滿意度問卷調查分數"
+    },
+    "layout_orientation": {
+      "type": "string",
+      "const": "transposed_matrix",
+      "description": "Questions mapped vertically (Rows 7-23 & 30-35); Client Groups and Respondents mapped horizontally from Column C."
+    },
+    "conditional_formatting": {
+      "type": "object",
+      "properties": {
+        "low_score_threshold": {
+          "type": "number",
+          "const": 7
+        },
+        "alert_style": {
+          "type": "string",
+          "const": "Bold Red Font (#FF0000) for any score strictly less than 7"
+        }
+      }
+    },
+    "kpi_formulas": {
+      "type": "object",
+      "properties": {
+        "respondent_total_score": {
+          "type": "string",
+          "example": "=SUM(C7:C23)"
+        },
+        "respondent_dynamic_average": {
+          "type": "string",
+          "description": "Calculates percentage against actual answered questions (valid_count * 10) to avoid penalizing N/A items",
+          "example": "=C24/170"
+        },
+        "client_group_item_average": {
+          "type": "string",
+          "example": "=AVERAGE(C7,E7)"
+        },
+        "overall_item_average": {
+          "type": "string",
+          "example": "=AVERAGE(C7,E7,I7)"
+        }
+      }
+    }
+  }
+}
