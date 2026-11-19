@@ -672,6 +672,14 @@
     errorBox.textContent = "";
   }
 
+  function ensureLibrariesReady() {
+    if (typeof ExcelJS === "undefined" || typeof saveAs === "undefined") {
+      showError("ExcelJS 或 FileSaver 套件尚未載入完成（請確認網路連線或未開啟離線檔案限制），請使用 HTTP 伺服器或 GitHub Pages 開啟。");
+      return false;
+    }
+    return true;
+  }
+
   // ==========================================
   // 3. 虛擬測試數據生成器 (Synthetic Zero-PII Mock)
   // ==========================================
@@ -722,6 +730,7 @@
 
   async function runMockDemo() {
     clearError();
+    if (!ensureLibrariesReady()) return;
     const wb = buildMockWorkbook();
     await processWorkbook(wb, "RAW_SAMPLE_Synthetic.xlsx");
     statusPanel.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -729,6 +738,7 @@
 
   async function downloadMockTemplate() {
     clearError();
+    if (!ensureLibrariesReady()) return;
     const wb = buildMockWorkbook();
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
@@ -737,6 +747,7 @@
 
   async function handleUploadedFile(file) {
     clearError();
+    if (!ensureLibrariesReady()) return;
     try {
       const arrayBuffer = await file.arrayBuffer();
       const workbook = new ExcelJS.Workbook();
@@ -795,7 +806,7 @@
 
       cleanedData.sort((a, b) => a.compRank !== b.compRank ? a.compRank - b.compRank : a.pRank - b.pRank);
 
-      // 建立輸出 Workbook (保留 100% 原版排版與公式)
+      // 建立輸出 Workbook
       const outWb = new ExcelJS.Workbook();
       const outWs = outWb.addWorksheet("客戶滿意度問卷調查分數");
       outWs.views = [{ showGridLines: true }];
@@ -852,7 +863,6 @@
 
       const getLet = (c) => outWs.getColumn(c).letter;
 
-      // 同時蒐集前端即時預覽數據
       let totalLowAlerts = 0;
       let grandScoreSum = 0;
       let grandScoreCount = 0;
@@ -946,13 +956,11 @@
           currentCol += 2;
         });
 
-        // 紀錄各客戶集團每題平均
         CONFIG.SCORE_QUESTIONS.forEach((_, qIdx) => {
           const arr = groupScoresPerQ[qIdx];
           scoreSummaryRows[qIdx].groupAvgs[compName] = arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length) : null;
         });
 
-        // 該客戶平均分欄
         let avgCol = currentCol;
         applyStyle(outWs.getCell(3, avgCol), fontBold, alignCenter, fillAvg); outWs.getCell(3, avgCol).value = `「${compName}」\n就每題目的平均分`;
         applyStyle(outWs.getCell(3, avgCol + 1), fontReg, alignCenter, fillAvg);
@@ -980,7 +988,6 @@
         currentCol += 2;
       }
 
-      // 總平均分欄位
       let totCol = currentCol;
       applyStyle(outWs.getCell(3, totCol), fontBold, alignCenter, fillHead); outWs.getCell(3, totCol).value = "每題總\n平均分";
       applyStyle(outWs.getCell(6, totCol), fontBold, alignCenter, fillHead); outWs.getCell(6, totCol).value = CONFIG.report_year;
@@ -996,21 +1003,18 @@
       applyStyle(outWs.getCell(24, totCol), fontBold, alignCenter, fillHead); outWs.getCell(24, totCol).value = "--";
       applyStyle(outWs.getCell(25, totCol), fontBold, alignCenter, fillHead); outWs.getCell(25, totCol).value = "--";
 
-      // 調整尺寸
       outWs.getColumn(1).width = 46;
       outWs.getColumn(2).width = 14;
       for (let c = 3; c <= currentCol; c++) { outWs.getColumn(c).width = 13; }
-      outWs.getRow(3).height = 28;
-      outWs.getRow(5).height = 24;
-      for (let r = 7; r <= 25; r++) outWs.getRow(r).height = 20;
-      for (let r = 30; r <= 35; r++) outWs.getRow(r).height = 42;
+      outWs.row(3).height = 28;
+      outWs.row(5).height = 24;
+      for (let r = 7; r <= 25; r++) outWs.row(r).height = 20;
+      for (let r = 30; r <= 35; r++) outWs.row(r).height = 42;
 
-      // 產生下載用 Blob 並暫存於本地記憶體
       const buffer = await outWb.xlsx.writeBuffer();
       generatedBlob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
       generatedFileName = "2025年客戶滿意度問卷調查資料整合_Demo已生成.xlsx";
 
-      // 更新 KPI 與預覽狀態
       previewState = {
         sourceName,
         totalResponses: cleanedData.length,
@@ -1043,12 +1047,15 @@
   }
 
   function exportGeneratedExcel() {
-    if (!generatedBlob) return;
+    if (!generatedBlob) {
+      showError("請先點擊「一鍵載入虛擬數據體驗」或上傳 RAW Excel 檔案，再下載整合報表。");
+      return;
+    }
     saveAs(generatedBlob, generatedFileName);
   }
 
   // ==========================================
-  // 5. 即時預覽表格與分類篩選器
+  // 5. 即時預覽表格與分類篩選器 (防實體解碼寫法)
   // ==========================================
   function applyFilter(filterKey) {
     currentFilter = filterKey;
@@ -1062,10 +1069,10 @@
 
   function escapeHtml(str) {
     return String(str)
-      .replace(/&/g, "&")
-      .replace(/</g, "<")
-      .replace(/>/g, ">")
-      .replace(/"/g, """);
+      .replace(/&/g, "\u0026amp;")
+      .replace(/</g, "\u0026lt;")
+      .replace(/>/g, "\u0026gt;")
+      .replace(/"/g, "\u0026quot;");
   }
 
   function renderPreviewTable(filterKey) {
@@ -1096,7 +1103,6 @@
       return;
     }
 
-    // 評分矩陣預覽
     const groupColsHtml = previewState.groupNames.map(g => `<th class="px-3 py-3 text-center whitespace-nowrap">${escapeHtml(g)}</th>`).join("");
     thead.innerHTML = `
       <tr>
@@ -1138,10 +1144,10 @@
       return `
         <tr class="hover:bg-gray-50">
           <td class="px-3.5 py-2.5 font-medium text-gray-900">${escapeHtml(r.label)}</td>
-          <td class="px-3 py-2.5 whitespace-nowrap"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[11px] font-semibold">${escapeHtml(r.cat)}</span></td>
+          <td class="px-3.5 py-2.5 whitespace-nowrap"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[11px] font-semibold">${escapeHtml(r.cat)}</span></td>
           ${groupCells}
-          <td class="px-3 py-2.5 text-center font-bold bg-blue-50/60 text-blue-900">${overall}</td>
-          <td class="px-3 py-2.5 text-center">${alertBadge}</td>
+          <td class="px-3.5 py-2.5 text-center font-bold bg-blue-50/60 text-blue-900">${overall}</td>
+          <td class="px-3.5 py-2.5 text-center">${alertBadge}</td>
         </tr>`;
     }).join("");
   }
