@@ -1,8 +1,3 @@
-本次優化針對你貼上的版本進行了三項關鍵修正與升級：
- * 修復損壞的超連結與指令：移除 git clone 區塊內誤植的 Markdown 連結語法，並將指向 Google 搜尋的 SECURITY_AND_PRIVACY.md 與 LICENSE 修正為標準倉庫相對路徑。
- * 納入企業架構與稽核目錄（docs/、flows/、schemas/）：新增完整的專案目錄樹，讓稽核人員與訪客一目了然系統的契約規範與確定性流程。
- * 加入雙軌架構對照表：以結構化表格呈現網頁版與桌面版的安全邊界與適用場景，提升整體專業質感。
-請直接複製以下完整代碼覆蓋 README.md：
 # 📊 Enterprise CSAT Data Consolidation <br> (企業客戶滿意度問卷整合系統)
 
 ![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)
